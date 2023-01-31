@@ -10,5 +10,71 @@ html, body {
 }
 
 body {
+  min-width: 20rem;
+  max-width: 80rem;
+  margin: 0 auto;
   font-family: Calibri;
+  background: #0F0F0F;
+}
+
+/* Start Section  =========================================================  */
+#start {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20rem;
+  text-align: center;
+  color: red;
+
+}
+
+.center {
+  background: center / contain no-repeat url('./media/silhouette-bottom-dark-blue-theatre_320x320.jpg');
+  min-width: 20rem;
+  max-width: 20rem;
+  min-height: 20rem;
+  max-width: 20rem;
+}
+
+.props {
+  width: 33%;
+}
+
+.props > img {
+  width: 75%;
+  max-height: 20rem;
+}
+
+h1 {
+  font-size: 5rem;
+  line-height: 5.5rem;
+  color: #FFF;
+}
+
+form {
+  padding-top: 3rem;
+  text-align: center;
+}
+
+label {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+select {
+  padding: 0.5rem;
+  font-size: 1.25rem;
+}
+
+/* Search Section  ========================================================  */
+#search {
+  min-height: 30rem;                                                           /* TODO */
+  background-color: #03BFFE;
+}
+
+/* Footer */
+footer {
+  background: #12293D;
+  height: 10rem;
+  background: #12293D no-repeat url('./media/TMDbLogo.png');;
 }
