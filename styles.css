@@ -13,7 +13,7 @@ body {
   min-width: 20rem;
   max-width: 80rem;
   margin: 0 auto;
-  font-family: Calibri;
+  font-family: Calibri, sans-serif;
   background: #0F0F0F;
 }
 
@@ -25,7 +25,6 @@ body {
   height: 20rem;
   text-align: center;
   color: red;
-
 }
 
 .center {
@@ -52,7 +51,7 @@ h1 {
 }
 
 form {
-  padding-top: 3rem;
+  padding-top: 3.25rem;
   text-align: center;
 }
 
@@ -62,14 +61,55 @@ label {
 }
 
 select {
-  padding: 0.5rem;
-  font-size: 1.25rem;
+  cursor: pointer;
+  font-family: Calibri, sans-serif;
+  padding: 0.375rem;
+  font-size: 1.375rem;
 }
 
-/* Search Section  ========================================================  */
-#search {
-  min-height: 30rem;                                                           /* TODO */
+/* Main Section  ==========================================================  */
+main {
+  min-height: 30rem;
   background-color: #03BFFE;
+}
+
+#choose {
+  padding: 1rem;
+}
+
+#movie-btn {
+  cursor: pointer;
+  background: linear-gradient(135deg, rgb(255,0,0) 0%, rgb(127,0,0) 100%);
+  border-radius: 5px;
+  border: none;
+  color: #FFFFFF;
+  text-shadow: 1px 1px 1px #000;
+  font-size: 1.25rem;
+  padding: 0.5rem 0.75rem;
+  display: block;
+  margin: 0 auto;                                                              /* PLACEMENT ? */
+  box-shadow: inset 2px 2px 3px rgba(255, 255, 255, 0.6),
+  inset -2px -2px 3px rgba(0, 0, 0, 0.6);
+}
+
+#movie-btn:hover {
+  background: rgb(230,0,0);
+}
+
+#movie-btn:active {
+  box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.6),
+              inset -2px -2px 3px rgba(255, 255, 255, 0.6);
+  text-shadow: 1px 1px 1px rgb(119, 119, 119);
+}
+
+#display {
+  display: flex;
+  justify-content: center;
+}
+
+#info {
+  width: 500px;
+  padding: 2rem;
 }
 
 /* Footer */

@@ -20,6 +20,7 @@
       <form id="genreForm">
         <label for="genresList">Pick a genre:</label>
         <select name="genres" id="genresList">
+          <option value="*">All genres</option>
         </select>
       </form>
     </div>
@@ -28,9 +29,15 @@
     </div>
   </section>
 
-  <section id="search">
-
-  </section>
+  <main>
+    <div id="choose">
+      <input type="button" id="movie-btn" value="Show Movie">
+    </div>
+    <div id="display">
+      <div id="poster"></div>
+      <div id="info"></div>
+    </div>
+  </main>
 
   <footer>
   </footer>
