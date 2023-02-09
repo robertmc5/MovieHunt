@@ -8,7 +8,7 @@ const genresPath = '/genre/movie/list';
 const discoverMoviePath = '/discover/movie';
 const withGenres = '&with_genres=';
 const movieDetailsPath = '/movie/';
-const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
+const baseImageUrl = 'https://image.tmdb.org/t/p/w500'; // as width 500px
 
 // Index of current movie being displayed
 let currentSelection = 0;
@@ -18,8 +18,6 @@ const genreDropdown = document.getElementById('genresList');
 const chooseDiv = document.getElementById('choose');
 const movieBtn = document.getElementById('movie-btn');
 const displayDiv = document.getElementById('display');
-const posterDiv = document.getElementById('poster');
-const infoDiv = document.getElementById('info');
 
 // GET genre list from API  ===================================================
 const getGenres = async () => {
@@ -60,13 +58,22 @@ const getDiscoverMovie = async () => {
     if (response.ok) {
       let jsonResponse = await response.json();
       console.log("DISCOVER MOVIE OBJECT:", jsonResponse);                    // TEST
+      // The twenty movies discovered
       let movies = jsonResponse.results;
       console.log("DISCOVER MOVIE RESULTS PROPERTY array of objects:", movies); // TEST
-      let details = await getMovieDetails(movies[currentSelection].id);
-      console.log("movies[currentSelection].id:", movies[currentSelection].id); // TEST
-      console.log("movies[currentSelection].id:", typeof movies[currentSelection].id); // TEST
-      console.log("details:", details);                                      // TEST
-      displayMovie(movies, details);
+      // Collect runtimes, language & tagline of the twenty movies in details API
+      let tagline = [];
+      let runtimes = [];
+      let language = [];
+      for (let each = 0; each < movies.length; each++) {                       // ADJUST FOR PAGES?!
+        let details = await getMovieDetails(movies[each].id);
+        tagline.push(details.tagline);
+        runtimes.push(details.runtime);
+        language.push((details.original_language === "en") ? null: (details.spoken_languages.length === 0) ? null: details.spoken_languages[0].english_name);
+      }
+      console.log("runtimes:", runtimes);                                      // TEST
+      // Send the twenty movies info to be displayed
+      displayMovie(movies, tagline, runtimes, language);
     }
   } catch (error) {
     console.log(error);           // TODO ?
@@ -74,7 +81,7 @@ const getDiscoverMovie = async () => {
 }
 
 // GET movie details from API  ================================================
-async function getMovieDetails(movieId) {
+async function getMovieDetails(movieId) {                                      // WHEN ACCESS?
   const endpoint = baseUrl + movieDetailsPath + movieId + requestKey;
   console.log("endpoint:", endpoint);                                      // TEST
   try {
@@ -100,35 +107,66 @@ function displayGenres(genresArr) {
 }
 
 // Display movie info  ========================================================
-function displayMovie(movies, details) {
+function displayMovie(movies, tagline, runtimes, language) {
   // Clear out display
-  if (posterDiv.firstChild) posterDiv.removeChild(posterDiv.firstChild);
-  infoDiv.textContent = '';
-  // Movie poster
-  let poster = document.createElement('img');
-  poster.setAttribute('src', baseImageUrl + movies[currentSelection].poster_path);
-  poster.style.width = "250px";
-  posterDiv.appendChild(poster);
-  // Movie title
-  let title = document.createElement('h2');
-  title.textContent = movies[currentSelection].title;
-  title.style.color = '#FFF';
-  title.style.textShadow = '1px 1px 1px #000';
-  infoDiv.appendChild(title);
-  // Movie description
-  let description = document.createElement('p');
-  description.style.fontSize = '18px';
-  description.textContent = movies[currentSelection].overview;
-  infoDiv.appendChild(description);
-  // Movie runtime (uses movie details endpoint)
-  let runtime = document.createElement('p');
-  runtime.textContent = `Runtime: ${details.runtime} mins.`;
-  runtime.style.fontWeight = '600';
-  infoDiv.appendChild(runtime);
-  // Movie release date
-  let releaseDate = document.createElement('p');
-  releaseDate.textContent = `Release date: ${movies[currentSelection].release_date}`;
-  infoDiv.appendChild(releaseDate);
+  for (let selection = 0; selection < movies.length; selection++) {
+    if (displayDiv.firstChild) displayDiv.removeChild(displayDiv.firstChild);
+  }
+  // Group of twenty movies
+  for (let selection = 0; selection < movies.length; selection++) {
+    // Container for one of twenty movies
+    let movieOptionDiv = document.createElement('div');
+    movieOptionDiv.setAttribute('class', "movieOption");
+    displayDiv.appendChild(movieOptionDiv);
+    // Poster container
+    let posterDiv = document.createElement('div');
+    posterDiv.setAttribute('class', "poster");
+    movieOptionDiv.appendChild(posterDiv);
+    // Info container
+    let infoDiv = document.createElement('div');
+    infoDiv.setAttribute('class', "info");
+    movieOptionDiv.appendChild(infoDiv);
+
+    // Movie poster
+    let poster = document.createElement('img');
+    poster.setAttribute('src', baseImageUrl + movies[selection].poster_path);
+    poster.style.width = "250px";
+    posterDiv.appendChild(poster);
+    // Movie title
+    let title = document.createElement('h2');
+    title.textContent = movies[selection].title;
+    title.style.color = '#FFF';
+    title.style.textShadow = '1px 1px 1px #000';
+    infoDiv.appendChild(title);
+    // Movie description
+    let description = document.createElement('p');
+    description.style.fontSize = '18px';
+    description.textContent = movies[selection].overview;
+    infoDiv.appendChild(description);
+    // Movie tagline (uses movie details endpoint)
+    let quote = document.createElement('p');
+    (tagline[selection]) ? quote.textContent = tagline[selection]: quote.style.marginBottom = '18px';
+    quote.style.fontSize = '18px';
+    quote.style.color = 'yellow';
+    quote.style.textAlign = 'center';
+    quote.style.fontStyle = 'italic';
+    infoDiv.appendChild(quote);
+    // Movie language (uses movie details endpoint)
+    if (language[selection] !== null) {
+      let spoken = document.createElement('p');
+      spoken.innerHTML = `Language: <span>${language[selection]}</span>`;
+      spoken.style.backgroundColor = 'orange';
+      infoDiv.appendChild(spoken);
+    }
+    // Movie runtime (uses movie details endpoint)
+    let runtime = document.createElement('p');
+    runtime.innerHTML = `Runtime: <span>${runtimes[selection]} mins.</span>`;
+    infoDiv.appendChild(runtime);
+    // Movie release date
+    let releaseDate = document.createElement('p');
+    releaseDate.innerHTML = `Release Date: <span>${movies[selection].release_date}</span>`;
+    infoDiv.appendChild(releaseDate);
+    }
 }
 
 // Register event listener  ===================================================
