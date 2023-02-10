@@ -3,20 +3,23 @@ import extraStep from "./modKey.js";
 // API
 const baseUrl = 'https://api.themoviedb.org/3';
 const requestKey = `?api_key=${extraStep}`;
-const langSuffix = '&language=en-US'; // Not needed as English is the default
 const genresPath = '/genre/movie/list';
 const discoverMoviePath = '/discover/movie';
 const withGenres = '&with_genres=';
 const movieDetailsPath = '/movie/';
-const baseImageUrl = 'https://image.tmdb.org/t/p/w500'; // as width 500px
+const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
 
-// Index of current movie being displayed
-let currentSelection = 0;
+// Counter of current movie page being displayed
+let currentPage = 1;
+// Record of current genre being displayed
+let displayedGenre;
 
 // DOM
 const genreDropdown = document.getElementById('genresList');
 const chooseDiv = document.getElementById('choose');
 const movieBtn = document.getElementById('movie-btn');
+const previousBtn = document.getElementById('previous-btn');
+const nextBtn = document.getElementById('next-btn');
 const displayDiv = document.getElementById('display');
 
 // GET genre list from API  ===================================================
@@ -54,25 +57,28 @@ const selectedGenre = () => {
 const getDiscoverMovie = async () => {
   const endpoint = baseUrl + discoverMoviePath + requestKey + withGenres;
   try {
-    let response = await fetch(endpoint + selectedGenre());
+    let response = await fetch(endpoint + selectedGenre() + `&page=${currentPage}`);
     if (response.ok) {
       let jsonResponse = await response.json();
       console.log("DISCOVER MOVIE OBJECT:", jsonResponse);                    // TEST
-      // The twenty movies discovered
+      // The twenty movies discovered with selected genre and page number
+      // The results property array of objects includes poster_path, title, overview & release_date
       let movies = jsonResponse.results;
       console.log("DISCOVER MOVIE RESULTS PROPERTY array of objects:", movies); // TEST
-      // Collect runtimes, language & tagline of the twenty movies in details API
+      console.log("This is PAGE:", currentPage); // TEST
+      // Collect tagline, language & runtimes of the twenty movies in details API
+      // Organize them in 20 element arrays that match the index of the movies array
       let tagline = [];
-      let runtimes = [];
       let language = [];
-      for (let each = 0; each < movies.length; each++) {                       // ADJUST FOR PAGES?!
+      let runtimes = [];
+      for (let each = 0; each < movies.length; each++) {
         let details = await getMovieDetails(movies[each].id);
         tagline.push(details.tagline);
         runtimes.push(details.runtime);
-        language.push((details.original_language === "en") ? null: (details.spoken_languages.length === 0) ? null: details.spoken_languages[0].english_name);
+        language.push((details.original_language === "en") ? null: (details.spoken_languages.length === 0) ? null: (details.spoken_languages[0].english_name === "English") ? "Dubbed English": details.spoken_languages[0].english_name);
       }
       console.log("runtimes:", runtimes);                                      // TEST
-      // Send the twenty movies info to be displayed
+      // Call for the twenty movies info to be displayed
       displayMovie(movies, tagline, runtimes, language);
     }
   } catch (error) {
@@ -104,15 +110,64 @@ function displayGenres(genresArr) {
     option.text = genreObj.name;
     genreDropdown.appendChild(option);
   }
+  displayedGenre = genreDropdown.value;
+  console.log("displayedGenre:", displayedGenre);                              // TEST
+}
+
+// Pre-display movie info  ====================================================
+function displayProcessing() {
+  // Check for genre change
+  let currentGenre = genreDropdown.value;
+  if (currentGenre !== displayedGenre) {
+    currentPage = 1;
+    displayedGenre = currentGenre;
+    previousBtn.style.display = 'none';
+  }
+  // Clear out display
+  while (displayDiv.firstChild) {
+    displayDiv.removeChild(displayDiv.firstChild);
+  }
+  // Display that it is processing ...
+  let processingDiv = document.createElement('div');
+  processingDiv.textContent = "Processing...";
+  processingDiv.style.fontSize = "1.125rem";
+  processingDiv.style.padding = "0.5rem";
+  processingDiv.style.color = "gray";
+  processingDiv.style.fontWeight = "bold";
+  displayDiv.appendChild(processingDiv);
+  // Show group buttons
+  if (currentPage < 1000) nextBtn.style.display = 'block';
+  if (currentPage > 1) previousBtn.style.display = 'block';
+  movieBtn.style.fontSize = '0.875rem';
+  // Invoke Movie fetch
+  getDiscoverMovie();
+}
+
+function previousPage() {
+  if (currentPage <= 2) {
+    previousBtn.style.display = 'none';
+  }
+  if (currentPage !== 1) {
+    currentPage--;
+  }
+  displayProcessing()
+}
+
+function nextPage() {
+  if (currentPage >= 999) {
+    nextBtn.style.display = 'none';
+  }
+  if (currentPage !== 1000) {
+    currentPage++;
+  }
+  displayProcessing()
 }
 
 // Display movie info  ========================================================
 function displayMovie(movies, tagline, runtimes, language) {
-  // Clear out display
-  for (let selection = 0; selection < movies.length; selection++) {
-    if (displayDiv.firstChild) displayDiv.removeChild(displayDiv.firstChild);
-  }
-  // Group of twenty movies
+  // Clear out processing display
+  displayDiv.removeChild(displayDiv.firstChild);
+  // Display group of twenty movies
   for (let selection = 0; selection < movies.length; selection++) {
     // Container for one of twenty movies
     let movieOptionDiv = document.createElement('div');
@@ -150,24 +205,27 @@ function displayMovie(movies, tagline, runtimes, language) {
     quote.style.color = 'yellow';
     quote.style.textAlign = 'center';
     quote.style.fontStyle = 'italic';
+    quote.style.fontWeight = '600';
     infoDiv.appendChild(quote);
     // Movie language (uses movie details endpoint)
     if (language[selection] !== null) {
       let spoken = document.createElement('p');
       spoken.innerHTML = `Language: <span>${language[selection]}</span>`;
-      spoken.style.backgroundColor = 'orange';
+      spoken.style.backgroundColor = 'gold';
       infoDiv.appendChild(spoken);
     }
     // Movie runtime (uses movie details endpoint)
     let runtime = document.createElement('p');
-    runtime.innerHTML = `Runtime: <span>${runtimes[selection]} mins.</span>`;
+    if (runtimes[selection] !== 0) runtime.innerHTML = `Runtime: <span>${runtimes[selection]} mins.</span>`;
     infoDiv.appendChild(runtime);
     // Movie release date
     let releaseDate = document.createElement('p');
     releaseDate.innerHTML = `Release Date: <span>${movies[selection].release_date}</span>`;
     infoDiv.appendChild(releaseDate);
-    }
+  }
 }
 
-// Register event listener  ===================================================
-movieBtn.addEventListener('click', getDiscoverMovie);
+// Register event listeners  ==================================================
+movieBtn.addEventListener('click', displayProcessing);
+previousBtn.addEventListener('click', previousPage);
+nextBtn.addEventListener('click', nextPage);
