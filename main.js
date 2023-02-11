@@ -7,6 +7,7 @@ const genresPath = '/genre/movie/list';
 const discoverMoviePath = '/discover/movie';
 const withGenres = '&with_genres=';
 const movieDetailsPath = '/movie/';
+const creditsPath = '/credits';
 const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
 
 // Counter of current movie page being displayed
@@ -67,19 +68,23 @@ const getDiscoverMovie = async () => {
       console.log("DISCOVER MOVIE RESULTS PROPERTY array of objects:", movies); // TEST
       console.log("This is PAGE:", currentPage); // TEST
       // Collect tagline, language & runtimes of the twenty movies in details API
+      // Collect the {first five} cast of the movies in credits API
       // Organize them in 20 element arrays that match the index of the movies array
       let tagline = [];
       let language = [];
       let runtimes = [];
+      let cast = [];
       for (let each = 0; each < movies.length; each++) {
-        let details = await getMovieDetails(movies[each].id);
-        tagline.push(details.tagline);
-        runtimes.push(details.runtime);
-        language.push((details.original_language === "en") ? null: (details.spoken_languages.length === 0) ? null: (details.spoken_languages[0].english_name === "English") ? "Dubbed English": details.spoken_languages[0].english_name);
+        let concurrentArray = await Promise.all([getMovieDetails(movies[each].id), getMovieCredits(movies[each].id)]);
+        tagline.push(concurrentArray[0].tagline);
+        runtimes.push(concurrentArray[0].runtime);
+        language.push((concurrentArray[0].original_language === "en") ? null: (concurrentArray[0].spoken_languages.length === 0) ? null: (concurrentArray[0].spoken_languages[0].english_name === "English") ? "Dubbed English": concurrentArray[0].spoken_languages[0].english_name);
+        cast.push(concurrentArray[1]);
       }
       console.log("runtimes:", runtimes);                                      // TEST
+      console.log("getMovieCredits:", await getMovieCredits(movies[0].id));    // TEST
       // Call for the twenty movies info to be displayed
-      displayMovie(movies, tagline, runtimes, language);
+      displayMovie(movies, tagline, runtimes, language, cast);
     }
   } catch (error) {
     console.log(error);           // TODO ?
@@ -87,7 +92,7 @@ const getDiscoverMovie = async () => {
 }
 
 // GET movie details from API  ================================================
-async function getMovieDetails(movieId) {                                      // WHEN ACCESS?
+async function getMovieDetails(movieId) {
   const endpoint = baseUrl + movieDetailsPath + movieId + requestKey;
   console.log("endpoint:", endpoint);                                      // TEST
   try {
@@ -96,6 +101,35 @@ async function getMovieDetails(movieId) {                                      /
       let detailsObj = await response.json();
       console.log("detailsObj:", detailsObj);                              // TEST
       return detailsObj;
+    }
+  } catch (error) {
+    console.log(error);           // TODO ?
+  }
+}
+
+// GET movie credits from API  ================================================
+async function getMovieCredits(movieId) {
+  const endpoint = baseUrl + movieDetailsPath + movieId + creditsPath + requestKey;
+  console.log("Credits endpoint:", endpoint);                                      // TEST
+  try {
+    let response = await fetch(endpoint);
+    if (response.ok) {
+      let creditsObj = await response.json();
+      console.log("creditsObj:", creditsObj);                              // TEST
+      let cast = creditsObj.cast
+      let topCast = 'Cast: ';
+      if (cast.length === 0) {
+        return null;
+      } else if (cast.length === 1) {
+        return topCast + cast[0].name + '.';
+      } else if (cast.length === 2) {
+        return topCast + cast[0].name + ' and ' + cast[1].name + '.';
+      }
+      let stop = Math.min(5, cast.length);
+      for (let i = 0; i < (stop-1); i++) {
+        topCast += (i !== (stop-2)) ? cast[i].name + ', ': cast[i].name + ' and ' + cast[i+1].name + '.';
+      }
+      return topCast;
     }
   } catch (error) {
     console.log(error);           // TODO ?
@@ -164,7 +198,7 @@ function nextPage() {
 }
 
 // Display movie info  ========================================================
-function displayMovie(movies, tagline, runtimes, language) {
+function displayMovie(movies, tagline, runtimes, language, cast) {
   // Clear out processing display
   displayDiv.removeChild(displayDiv.firstChild);
   // Display group of twenty movies
@@ -222,6 +256,10 @@ function displayMovie(movies, tagline, runtimes, language) {
     let releaseDate = document.createElement('p');
     releaseDate.innerHTML = `Release Date: <span>${movies[selection].release_date}</span>`;
     infoDiv.appendChild(releaseDate);
+    // Movie cast (uses movie credits endpoint)
+    let topFiveCast = document.createElement('p');
+    topFiveCast.textContent = cast[selection];
+    infoDiv.appendChild(topFiveCast);
   }
 }
 
