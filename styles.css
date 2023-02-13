@@ -85,7 +85,7 @@ main {
   justify-content: center;
 }
 
-#movie-btn,
+.movie-btn,
 #previous-btn,
 #next-btn {
   cursor: pointer;
@@ -113,7 +113,7 @@ main {
   display: none;
 }
 
-#movie-btn:hover {
+.movie-btn:hover {
   background: rgb(230,0,0);
 }
 
@@ -125,7 +125,7 @@ main {
   background: rgb(0,154,0);
 }
 
-#movie-btn:active, 
+.movie-btn:active, 
 #previous-btn:active, 
 #next-btn:active {
   box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.6),
@@ -166,6 +166,12 @@ main {
   font-weight: 600;
 }
 
+iframe {
+  width: 304px;
+  height: 171px;
+  padding-bottom: 0.8125rem;
+}
+
 /* Footer */
 footer {
   background: #12293D;
@@ -184,6 +190,10 @@ footer {
   }
   .info {
     width: 448px;
+  }
+  iframe {
+    width: 438px;
+    height: 247px;
   }
 }
 

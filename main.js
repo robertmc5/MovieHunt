@@ -1,14 +1,18 @@
 import extraStep from "./modKey.js";
 
-// API
+// TMDB API
 const baseUrl = 'https://api.themoviedb.org/3';
 const requestKey = `?api_key=${extraStep}`;
 const genresPath = '/genre/movie/list';
 const discoverMoviePath = '/discover/movie';
 const withGenres = '&with_genres=';
+const onPage = '&page=';
+const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
 const movieDetailsPath = '/movie/';
 const creditsPath = '/credits';
-const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
+const videosPath = '/videos';
+// Video stream is an iframe from YouTube
+const baseVideoEmbed = 'https://www.youtube.com/embed/';
 
 // Counter of current movie page being displayed
 let currentPage = 1;
@@ -18,7 +22,7 @@ let displayedGenre;
 // DOM
 const genreDropdown = document.getElementById('genresList');
 const chooseDiv = document.getElementById('choose');
-const movieBtn = document.getElementById('movie-btn');
+const movieBtn = document.getElementsByClassName('movie-btn')[0];
 const previousBtn = document.getElementById('previous-btn');
 const nextBtn = document.getElementById('next-btn');
 const displayDiv = document.getElementById('display');
@@ -33,37 +37,61 @@ const getGenres = async () => {
       let genres = jsonResponse.genres;
       return genres;
     }
-    throw new Error(`Request failed. Status: ${response.status};`);
   } catch (error) {
-      console.log(error);
-      let message = document.createElement('option');
-      message.value = null;
-      message.text = "ERROR: GENRES UNAVAILABLE";
-      genreDropdown.style.fontSize = "1.125rem";
-      genreDropdown.style.padding = "0.5rem";
-      genreDropdown.style.color = "darkred";
-      genreDropdown.style.fontWeight = "bold";
-      genreDropdown.appendChild(message);
+    console.log(error);
+    genreDropdown.removeChild(genreDropdown.lastElementChild);
+    let message = document.createElement('option');
+    message.text = "ERROR: GENRES UNAVAILABLE";
+    genreDropdown.style.fontSize = "1.125rem";
+    genreDropdown.style.padding = "0.5rem";
+    genreDropdown.style.fontWeight = "bold";
+    genreDropdown.appendChild(message);
   }
 }
 
 // Activate 'Pick a genre' dropdown
 getGenres().then(displayGenres);
 
+// Display genres in dropdown  ================================================
+function displayGenres(genresArr) {
+  for (let genreObj of genresArr) {
+    let option = document.createElement('option');
+    option.value = genreObj.id;
+    option.text = genreObj.name;
+    genreDropdown.appendChild(option);
+  }
+  displayedGenre = genreDropdown.value;
+  console.log("displayedGenre:", displayedGenre);                              // TEST
+}
+
 // GET movie from API  ========================================================
+// Helper Fn to retrieve current genre
 const selectedGenre = () => {
   let selectedGenreId = genreDropdown.value;
   return selectedGenreId;
 }
+// Helper Fn to display error to user if needed
+function renderError(error, div) {
+  while (div.firstChild) {
+    div.removeChild(div.firstChild);
+  }
+  let errorMessage = document.createElement('p');
+  errorMessage.textContent = error;
+  errorMessage.style.fontSize = "1.125rem";
+  errorMessage.style.padding = "0.5rem";
+  errorMessage.style.fontWeight = "bold";
+  div.appendChild(errorMessage);
+}
+
+// Twenty movies discovered with selected genre and page number
 const getDiscoverMovie = async () => {
   const endpoint = baseUrl + discoverMoviePath + requestKey + withGenres;
   try {
-    let response = await fetch(endpoint + selectedGenre() + `&page=${currentPage}`);
+    let response = await fetch(endpoint + selectedGenre() + onPage + currentPage);
     if (response.ok) {
       let jsonResponse = await response.json();
       console.log("DISCOVER MOVIE OBJECT:", jsonResponse);                    // TEST
-      // The twenty movies discovered with selected genre and page number
-      // The results property array of objects includes poster_path, title, overview & release_date
+      // The results property array of objects includes poster_path, title, overview, release_date & id
       let movies = jsonResponse.results;
       console.log("DISCOVER MOVIE RESULTS PROPERTY array of objects:", movies); // TEST
       console.log("This is PAGE:", currentPage); // TEST
@@ -82,12 +110,15 @@ const getDiscoverMovie = async () => {
         cast.push(concurrentArray[1]);
       }
       console.log("runtimes:", runtimes);                                      // TEST
-      console.log("getMovieCredits:", await getMovieCredits(movies[0].id));    // TEST
+      console.log("tagline:", tagline);                                        // TEST
+      console.log("language:", language);                                      // TEST
+      console.log("cast:", cast);                                              // TEST
       // Call for the twenty movies info to be displayed
       displayMovie(movies, tagline, runtimes, language, cast);
     }
   } catch (error) {
-    console.log(error);           // TODO ?
+    console.log(error);
+    renderError("ERROR: DATA UNAVAILABLE", displayDiv)
   }
 }
 
@@ -103,7 +134,7 @@ async function getMovieDetails(movieId) {
       return detailsObj;
     }
   } catch (error) {
-    console.log(error);           // TODO ?
+    console.log(error);
   }
 }
 
@@ -132,20 +163,68 @@ async function getMovieCredits(movieId) {
       return topCast;
     }
   } catch (error) {
-    console.log(error);           // TODO ?
+    console.log(error);
   }
 }
 
-// Display genres in dropdown  ================================================
-function displayGenres(genresArr) {
-  for (let genreObj of genresArr) {
-    let option = document.createElement('option');
-    option.value = genreObj.id;
-    option.text = genreObj.name;
-    genreDropdown.appendChild(option);
+// GET movie trailer from API  ================================================   TODO
+async function getMovieTrailer(event) {
+  let current = event.currentTarget;
+  console.log("event.currentTarget:", current);                                      // TEST
+  let movieId = current.getAttribute('data-key');
+  console.log("current.getAttribute('data-key'):", movieId);                         // TEST
+  const endpoint = baseUrl + movieDetailsPath + movieId + videosPath + requestKey;    // TODO Path
+  console.log("Videos endpoint:", endpoint);                                      // TEST
+  try {
+    let response = await fetch(endpoint);
+    if (response.ok) {
+      let videosObj = await response.json();
+      console.log("videosObj:", videosObj);                              // TEST
+      let resultsArr = videosObj.results;
+      console.log("resultsArr:", resultsArr);                              // TEST
+      if (resultsArr.length === 0) throw new Error(`Request failed. Status: ${response.status};`);
+      let officialTrailerObj = '';
+      let trailerObj = '';
+      let videoObj = '';
+      resultsArr.forEach((obj) => {
+        if (obj.name.toLowerCase() === "official trailer") {
+          officialTrailerObj = obj;
+        } else if (obj.name.toUpperCase().includes("TRAILER")) {
+          trailerObj = obj;
+        } else if (obj.name) {
+          videoObj = obj;
+        }
+      });
+      if (!officialTrailerObj) {
+        officialTrailerObj = (trailerObj) ? trailerObj: videoObj;
+      }
+      let source = baseVideoEmbed + officialTrailerObj.key;
+      console.log("source:", source);                                          // TEST
+      let trailer = document.createElement('iframe');
+      trailer.setAttribute('title', officialTrailerObj.name);
+      trailer.setAttribute('src', source);
+      trailer.setAttribute('frameborder', "0");
+      trailer.setAttribute('allow', "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
+      trailer.setAttribute('allowfullscreen', "true");
+      if (current.parentNode.lastElementChild === current) {
+        current.parentNode.appendChild(trailer);
+      } else {
+        current.parentNode.removeChild(current.parentNode.lastElementChild);
+      }
+    }
+  } catch (error) {
+    console.log(error);
+    let errorMessage = document.createElement('p');
+    errorMessage.textContent = "ERROR: VIDEO NOT AVAILABLE";
+    errorMessage.style.fontSize = "1.125rem";
+    errorMessage.style.padding = "0.5rem";
+    errorMessage.style.fontWeight = "bold";
+    if (current.parentNode.lastElementChild === current) {
+      current.parentNode.appendChild(errorMessage);
+    } else {
+      current.parentNode.removeChild(current.parentNode.lastElementChild);
+    }
   }
-  displayedGenre = genreDropdown.value;
-  console.log("displayedGenre:", displayedGenre);                              // TEST
 }
 
 // Pre-display movie info  ====================================================
@@ -260,7 +339,23 @@ function displayMovie(movies, tagline, runtimes, language, cast) {
     let topFiveCast = document.createElement('p');
     topFiveCast.textContent = cast[selection];
     infoDiv.appendChild(topFiveCast);
+    // Movie trailer button (doesn't use API until clicked on)
+    let trailerBtn = document.createElement('button');
+    trailerBtn.setAttribute('class', "movie-btn trailer-btn");
+    trailerBtn.setAttribute('type', "button");
+    trailerBtn.textContent = "Movie Trailer";
+    trailerBtn.style.fontSize = "0.8125rem";
+    trailerBtn.style.padding = "0.25rem 0.5rem";
+    trailerBtn.style.margin = "0.5rem 0 0.8125rem";
+    trailerBtn.setAttribute('data-key', movies[selection].id);
+    infoDiv.appendChild(trailerBtn);
   }
+  // Register event listeners on the trailer buttons
+  const trailerBtns = Array.from(document.getElementsByClassName('trailer-btn'));
+  console.log("trailerBtns:", trailerBtns);                                // TEST
+  trailerBtns.forEach((trailerBtn) => {
+    trailerBtn.addEventListener('click', getMovieTrailer);
+  });
 }
 
 // Register event listeners  ==================================================
