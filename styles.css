@@ -74,6 +74,10 @@ select {
   font-size: 1.375rem;
 }
 
+.list {
+  background-color: #ffe4b3;
+}
+
 /* Main Section  ==========================================================  */
 main {
   background-color: #03BFFE;

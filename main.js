@@ -7,6 +7,9 @@ const genresPath = '/genre/movie/list';
 const discoverMoviePath = '/discover/movie';
 const withGenres = '&with_genres=';
 const onPage = '&page=';
+const nowPlayingPath = '/movie/now_playing';
+const popularPath = '/movie/popular';
+const topRatedPath = '/movie/top_rated';
 const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
 const movieDetailsPath = '/movie/';
 const creditsPath = '/credits';
@@ -82,17 +85,49 @@ function renderError(error, div) {
   errorMessage.style.fontWeight = "bold";
   div.appendChild(errorMessage);
 }
+// Helper Fn to not include older movies in Now Playing list
+const removeOlderDates = (movies, minimumDate) => {
+  let newerMovies = [];
+  console.log("movies.slice():", newerMovies);                                 // TEST
+  for (let each = 0; each < movies.length; each++) {
+    console.log("movies[each].release_date:", movies[each].release_date);                                 // TEST
+    console.log("minimumDate:", minimumDate);                                 // TEST
+    if (movies[each].release_date >= minimumDate) {
+      newerMovies.push(movies[each]);
+    }
+  }
+  console.log("newerMovies.splice(each, 1):", newerMovies);                    // TEST
+  return newerMovies;
+}
 
 // Twenty movies discovered with selected genre and page number
 const getDiscoverMovie = async () => {
-  const endpoint = baseUrl + discoverMoviePath + requestKey + withGenres;
+  let category = selectedGenre();
+  let endpoint = '';
+  switch (category) {
+    case 'now_playing':
+      endpoint = baseUrl + nowPlayingPath + requestKey + onPage + currentPage;
+      break;
+    case 'popular':
+      endpoint = baseUrl + popularPath + requestKey + onPage + currentPage;
+      break;
+    case 'top_rated':
+      endpoint = baseUrl + topRatedPath + requestKey + onPage + currentPage;
+      break;
+    default:
+      endpoint = baseUrl + discoverMoviePath + requestKey + withGenres + category + onPage + currentPage;
+  }
   try {
-    let response = await fetch(endpoint + selectedGenre() + onPage + currentPage);
+    let response = await fetch(endpoint);
+    console.log("DISCOVER MOVIE ENDPOINT:", endpoint);                    // TEST
     if (response.ok) {
       let jsonResponse = await response.json();
       console.log("DISCOVER MOVIE OBJECT:", jsonResponse);                    // TEST
       // The results property array of objects includes poster_path, title, overview, release_date & id
       let movies = jsonResponse.results;
+      if (category === 'now_playing') {
+        movies = removeOlderDates(movies, jsonResponse.dates.minimum);
+      }
       console.log("DISCOVER MOVIE RESULTS PROPERTY array of objects:", movies); // TEST
       console.log("This is PAGE:", currentPage); // TEST
       // Collect tagline, language & runtimes of the twenty movies in details API
