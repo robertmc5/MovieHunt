@@ -1,4 +1,4 @@
-class extraStep {
+class ExtraStep {
   constructor(shift) {
     this.shift = shift;
   }
@@ -20,5 +20,5 @@ class extraStep {
   }
 }
 
-const token = new extraStep(11);
+const token = new ExtraStep(11);
 export default token.decrypt('29903QM3Q056N05P5502N2N8M93O607N');

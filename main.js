@@ -14,7 +14,7 @@ const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
 const movieDetailsPath = '/movie/';
 const creditsPath = '/credits';
 const videosPath = '/videos';
-// Video stream is an iframe from YouTube
+// Video stream for trailers is an iframe from YouTube
 const baseVideoEmbed = 'https://www.youtube.com/embed/';
 
 // Counter of current movie page being displayed
@@ -24,7 +24,6 @@ let displayedGenre;
 
 // DOM
 const genreDropdown = document.getElementById('genresList');
-const chooseDiv = document.getElementById('choose');
 const movieBtn = document.getElementsByClassName('movie-btn')[0];
 const previousBtn = document.getElementById('previous-btn');
 const nextBtn = document.getElementById('next-btn');
@@ -64,7 +63,6 @@ function displayGenres(genresArr) {
     genreDropdown.appendChild(option);
   }
   displayedGenre = genreDropdown.value;
-  console.log("displayedGenre:", displayedGenre);                              // TEST
 }
 
 // GET movie from API  ========================================================
@@ -88,19 +86,15 @@ function renderError(error, div) {
 // Helper Fn to not include older movies in Now Playing list
 const removeOlderDates = (movies, minimumDate) => {
   let newerMovies = [];
-  console.log("movies.slice():", newerMovies);                                 // TEST
   for (let each = 0; each < movies.length; each++) {
-    console.log("movies[each].release_date:", movies[each].release_date);                                 // TEST
-    console.log("minimumDate:", minimumDate);                                 // TEST
     if (movies[each].release_date >= minimumDate) {
       newerMovies.push(movies[each]);
     }
   }
-  console.log("newerMovies.splice(each, 1):", newerMovies);                    // TEST
   return newerMovies;
 }
-
-// Twenty movies discovered with selected genre and page number
+//  ===========================================================================
+// Twenty movies discovered with selected genre {or one of three lists} and page number
 const getDiscoverMovie = async () => {
   let category = selectedGenre();
   let endpoint = '';
@@ -119,17 +113,13 @@ const getDiscoverMovie = async () => {
   }
   try {
     let response = await fetch(endpoint);
-    console.log("DISCOVER MOVIE ENDPOINT:", endpoint);                    // TEST
     if (response.ok) {
       let jsonResponse = await response.json();
-      console.log("DISCOVER MOVIE OBJECT:", jsonResponse);                    // TEST
       // The results property array of objects includes poster_path, title, overview, release_date & id
       let movies = jsonResponse.results;
       if (category === 'now_playing') {
         movies = removeOlderDates(movies, jsonResponse.dates.minimum);
       }
-      console.log("DISCOVER MOVIE RESULTS PROPERTY array of objects:", movies); // TEST
-      console.log("This is PAGE:", currentPage); // TEST
       // Collect tagline, language & runtimes of the twenty movies in details API
       // Collect the {first five} cast of the movies in credits API
       // Organize them in 20 element arrays that match the index of the movies array
@@ -144,10 +134,6 @@ const getDiscoverMovie = async () => {
         language.push((concurrentArray[0].original_language === "en") ? null: (concurrentArray[0].spoken_languages.length === 0) ? null: (concurrentArray[0].spoken_languages[0].english_name === "English") ? "Dubbed English": concurrentArray[0].spoken_languages[0].english_name);
         cast.push(concurrentArray[1]);
       }
-      console.log("runtimes:", runtimes);                                      // TEST
-      console.log("tagline:", tagline);                                        // TEST
-      console.log("language:", language);                                      // TEST
-      console.log("cast:", cast);                                              // TEST
       // Call for the twenty movies info to be displayed
       displayMovie(movies, tagline, runtimes, language, cast);
     }
@@ -160,12 +146,10 @@ const getDiscoverMovie = async () => {
 // GET movie details from API  ================================================
 async function getMovieDetails(movieId) {
   const endpoint = baseUrl + movieDetailsPath + movieId + requestKey;
-  console.log("endpoint:", endpoint);                                      // TEST
   try {
     let response = await fetch(endpoint);
     if (response.ok) {
       let detailsObj = await response.json();
-      console.log("detailsObj:", detailsObj);                              // TEST
       return detailsObj;
     }
   } catch (error) {
@@ -176,12 +160,10 @@ async function getMovieDetails(movieId) {
 // GET movie credits from API  ================================================
 async function getMovieCredits(movieId) {
   const endpoint = baseUrl + movieDetailsPath + movieId + creditsPath + requestKey;
-  console.log("Credits endpoint:", endpoint);                                      // TEST
   try {
     let response = await fetch(endpoint);
     if (response.ok) {
       let creditsObj = await response.json();
-      console.log("creditsObj:", creditsObj);                              // TEST
       let cast = creditsObj.cast
       let topCast = 'Cast: ';
       if (cast.length === 0) {
@@ -202,21 +184,16 @@ async function getMovieCredits(movieId) {
   }
 }
 
-// GET movie trailer from API  ================================================   TODO
+// GET movie trailer from API  ================================================
 async function getMovieTrailer(event) {
   let current = event.currentTarget;
-  console.log("event.currentTarget:", current);                                      // TEST
   let movieId = current.getAttribute('data-key');
-  console.log("current.getAttribute('data-key'):", movieId);                         // TEST
-  const endpoint = baseUrl + movieDetailsPath + movieId + videosPath + requestKey;    // TODO Path
-  console.log("Videos endpoint:", endpoint);                                      // TEST
+  const endpoint = baseUrl + movieDetailsPath + movieId + videosPath + requestKey;
   try {
     let response = await fetch(endpoint);
     if (response.ok) {
       let videosObj = await response.json();
-      console.log("videosObj:", videosObj);                              // TEST
       let resultsArr = videosObj.results;
-      console.log("resultsArr:", resultsArr);                              // TEST
       if (resultsArr.length === 0) throw new Error(`Request failed. Status: ${response.status};`);
       let officialTrailerObj = '';
       let trailerObj = '';
@@ -234,7 +211,6 @@ async function getMovieTrailer(event) {
         officialTrailerObj = (trailerObj) ? trailerObj: videoObj;
       }
       let source = baseVideoEmbed + officialTrailerObj.key;
-      console.log("source:", source);                                          // TEST
       let trailer = document.createElement('iframe');
       trailer.setAttribute('title', officialTrailerObj.name);
       trailer.setAttribute('src', source);
@@ -311,6 +287,7 @@ function nextPage() {
   displayProcessing()
 }
 
+//  ===========================================================================
 // Display movie info  ========================================================
 function displayMovie(movies, tagline, runtimes, language, cast) {
   // Clear out processing display
@@ -387,13 +364,12 @@ function displayMovie(movies, tagline, runtimes, language, cast) {
   }
   // Register event listeners on the trailer buttons
   const trailerBtns = Array.from(document.getElementsByClassName('trailer-btn'));
-  console.log("trailerBtns:", trailerBtns);                                // TEST
   trailerBtns.forEach((trailerBtn) => {
     trailerBtn.addEventListener('click', getMovieTrailer);
   });
 }
 
-// Register event listeners  ==================================================
+// Register event listeners on Show Movies, Next Group & Last Group buttons  ==
 movieBtn.addEventListener('click', displayProcessing);
 previousBtn.addEventListener('click', previousPage);
 nextBtn.addEventListener('click', nextPage);
