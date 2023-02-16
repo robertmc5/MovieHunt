@@ -145,8 +145,8 @@ main {
 #display {
   display: flex;
   justify-content: flex-start;
-  overflow: scroll;
   min-height: 407px;
+  overflow-x: scroll;
 }
 
 .movieOption {
